@@ -1,5 +1,6 @@
 import gymnasium as gym
 from game import Game
+from copy import deepcopy
 
 
 class ConnectFourAdapter(gym.Env):
@@ -12,17 +13,20 @@ class ConnectFourAdapter(gym.Env):
         self.observation_space = gym.spaces.Box(low=-1, high=1)
 
     def step(self, action):
+        action.update({'player_id':self.player_id})
         obs = self.game.step(action)
-        obs.update({'board': self.game.observe()})
+        info = deepcopy(obs)
+        info.update({'board': self.game.observe()})
         terminated = False
         truncated = False
-        reward = obs
-        info = {}
+        reward = 0
+        # info = obs
+        print(info)
         return obs, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
-        observation = {'board': self.game.observe()}
-        info = {}
+        observation = None #{'board': self.game.observe()}
+        info = {'board': self.game.observe()}
         return observation, info
 
     def render(self):
@@ -32,3 +36,4 @@ class ConnectFourAdapter(gym.Env):
         pass
 
 
+gym.register('connect_four', entry_point=ConnectFourAdapter)

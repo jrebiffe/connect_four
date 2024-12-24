@@ -20,7 +20,8 @@ class Game:
 
     def step(self, action: dict[str, int]) -> dict[str, bool]:
         """Play a single move."""
-        player_id = next(self.players)
+        # player_id = next(self.players)
+        player_id = action['player_id']
         column = action["column"]
         height = count_nonzero(self.board[column, :])
         if height == self.board[column, :].size:

@@ -1,10 +1,13 @@
 from stable_baselines3.dqn import DQN
 from torch.nn import Tanh
+import numpy as np
 
 seed = 42
 
 config = {
-    'init' : {
+    'game' : {
+        'name': 'connect_four',
+        'first_player_rule': lambda obs: 1, #lambda info['nb']: np.random.choice(range(nb))
         'action': {'n': 7},
         'observation':{'height': 7, 'width':7},
     },
