@@ -5,6 +5,7 @@ from environment.gym_adapter import ConnectFourAdapter
 from environment.gym_wrappers import RewardWrapper, ObservationWrapper, ActionWrapper, PlayerIDWrapper, SwitchWrapper
 from agent.utils import agent_follow
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.monitor import Monitor
 from gymnasium import spaces
 import numpy as np
 
@@ -43,6 +44,10 @@ agent_type = config['agent']['agent_type']
 agent = agent_follow(agent_type)
 kwargs = config['agent']['kwargs']
 env = SwitchWrapper(env, agent, kwargs)
+
+# Monitor
+file_name = config['output']
+env = Monitor(env, file_name)
 
 # AGENT
 agent = config['agent']['agent_type']

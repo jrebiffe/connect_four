@@ -163,7 +163,7 @@ class SwitchWrapper(gym.Wrapper):
     def step(self, action):
         if self.env.get_wrapper_attr('player_id')==1:
             observation, reward, done, truncated, info = self.env.step(action)
-            if info['win']:
+            if done: #info['win']:
                 # # if the main agent has won, the inner agent needs to be informed before closing the env
                 print('player 1 won')
                 self.inner_agent.learn()
@@ -172,7 +172,7 @@ class SwitchWrapper(gym.Wrapper):
             self.inner_agent.learn()
             observation, reward, done, truncated, info = self.inner_agent.temp
         
-            if info['win']:
+            if done: #info['win']:
                 observation, reward, done, truncated, info = self.env.step(None)
 
         return observation, reward, done, truncated, info     

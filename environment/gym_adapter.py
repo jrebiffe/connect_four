@@ -13,15 +13,16 @@ class ConnectFourAdapter(gym.Env):
         self.observation_space = gym.spaces.Box(low=-1, high=1)
 
     def step(self, action):
-        if self.winner:
+        if self.game_over:
             obs = self.last_obs
-            obs['win'] = False
-            obs['loose'] = True
+            if obs['win']:
+                obs['win'] = False
+                obs['loose'] = True
         else:
             obs = self.game.step(action)
             obs['loose'] = False
             self.last_obs = deepcopy(obs)
-            self.winner = deepcopy(obs['win'])
+            self.game_over = obs['win'] | obs['full']
 
         terminated = False
         truncated = False
@@ -36,7 +37,7 @@ class ConnectFourAdapter(gym.Env):
         observation = None #{'board': self.game.observe()}
         self.game = Game()
         info = {'board': self.game.observe()}
-        self.winner = False
+        self.game_over = False
         return observation, info
 
     def render(self):

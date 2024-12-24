@@ -40,10 +40,12 @@ def agent_follow(agent_type):
         def _store_transition(self, replay_buffer, buffer_action,
             new_obs, reward, dones, infos) -> None:
             # save temporary what the agent sees
-            print(new_obs)
             if infos[0]['win']:
                 print('player 2 won')
+            if infos[0]['loose']:
+                print('player 2 lost')
             print('reward player 2:', reward[0])
+            print(new_obs)
             self.temp = new_obs, reward[0], dones[0], infos[0]['TimeLimit.truncated'], infos[0]
             super()._store_transition(replay_buffer, buffer_action, new_obs, reward, dones, infos)
 

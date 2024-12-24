@@ -13,8 +13,9 @@ config = {
     },
     'state': lambda obs: obs['board'],
     'reward': lambda obs: -1 if obs['illegal'] else 10 if obs['win'] else -10 if obs['loose'] else 0,
-    'end_condition': lambda obs: True if obs['win'] or obs['loose'] else False,  #obs['full'] or
+    'end_condition': lambda obs: True if obs['full'] or obs['win'] or obs['loose'] else False,  #
     'action': lambda act: {'column': act},
+    'output': 'test',
     'agent': {
         'agent_type':DQN,
         'load_pretrained_model': False,
