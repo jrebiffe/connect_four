@@ -93,14 +93,10 @@ class SwitchWrapper(gym.Wrapper):
 
     def step(self, action):
         if self.env.get_wrapper_attr('player_id')==1:
-        # if self.env.unwrapped.player_id==1: #env.env.env
             observation, reward, done, truncated, info = self.env.step(action)
         else:
-            # total_timestep = config['agent']['total_timestep']
             self.inner_agent.learn()
             observation, reward, done, truncated, info = self.inner_agent.temp
-
-            # info.update({'player_id':self.player_id})
 
         return observation, reward, done, truncated, info
 
@@ -135,11 +131,11 @@ total_timestep = config['agent']['total_timestep']
 # agent.learn(total_timesteps=total_timestep)
 # env.close()
 
-action = [1,4,5,6,2,2]
+action = [1,4,5,6,2,2,3,4,6,2,1,3,5]
 
-for _ in range(4):
+for _ in range(2):
     obs, info = env.reset()
-    for i in range(6):
+    for i in range(10):
         obs, reward, done, truncated, info = env.step(action=action[i])
         print('party done:', done)
         print(obs)
