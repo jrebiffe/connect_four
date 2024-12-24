@@ -114,7 +114,7 @@ class PlayerIDWrapper(gym.Wrapper):
         self.players = cycle(range(1,3))         
         self.starter_rule = starter_rule       
         super().__init__(env=environment)
-        # self.player_id = 1
+        self.player_id = 1
 
     def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, dict[Any]]:
         action.update({'player_id': self.player_id})
@@ -126,7 +126,9 @@ class PlayerIDWrapper(gym.Wrapper):
         return observation, reward, terminated, truncated, info
 
     def reset(self, *args, **kwargs) -> Tuple[Any, dict[Any]]:
-        self.player_id = self.starter_rule()
+        target_id = self.starter_rule()
+        while self.player_id != target_id :
+            self.player_id = next(self.players)
         observation, info = self.env.reset(*args, **kwargs)
         print('reset called')    
         
