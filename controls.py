@@ -22,7 +22,7 @@ config = {
         'load_replay_buffer': False,
         'buffer_path':'.buf',
         'pretrain':False,
-        'total_timestep':50,
+        'total_timestep':5,
         'kwargs':{
             'policy': 'MlpPolicy',
             'train_freq':1,

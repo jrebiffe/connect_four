@@ -2,7 +2,6 @@ from controls import config
 
 import gymnasium as gym
 from environment.gym_adapter import ConnectFourAdapter
-# from gymnasium.wrappers import TransformObservation, TransformAction #, TransformReward
 from environment.gym_wrappers import RewardWrapper, ObservationWrapper, ActionWrapper, PlayerIDWrapper
 from stable_baselines3.common.evaluation import evaluate_policy
 from gymnasium import spaces
@@ -19,7 +18,6 @@ env = PlayerIDWrapper(env, starter_fct)
 # custom reward
 reward_fct = config['reward']
 env = RewardWrapper(env, reward_fct)
-# env = TransformReward(env, reward_fct)
 
 # custom observation
 state_fct = config['state']
@@ -42,7 +40,7 @@ env = ActionWrapper(env, action_fct, action_space)
 agent_1 = config['agent']['agent_type']
 class customAgent(agent_1):
     def learn(self, callback = None, log_interval = 4,
-        tb_log_name = "run", reset_num_timesteps = True, progress_bar = False,
+        tb_log_name = "run", reset_num_timesteps = False, progress_bar = False,
     ):
         _, callback = self._setup_learn(
             1,
@@ -94,7 +92,8 @@ class SwitchWrapper(gym.Wrapper):
         self.inner_agent = agent(env=env, **kwargs)
 
     def step(self, action):
-        if self.player_id==1:
+        if self.env.get_wrapper_attr('player_id')==1:
+        # if self.env.unwrapped.player_id==1: #env.env.env
             observation, reward, done, truncated, info = self.env.step(action)
         else:
             # total_timestep = config['agent']['total_timestep']
@@ -142,6 +141,7 @@ for _ in range(4):
     obs, info = env.reset()
     for i in range(6):
         obs, reward, done, truncated, info = env.step(action=action[i])
+        print('party done:', done)
         print(obs)
 
         if truncated or done:

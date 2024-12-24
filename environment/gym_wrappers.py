@@ -111,18 +111,20 @@ class ObservationWrapper(gym.Wrapper):
 class PlayerIDWrapper(gym.Wrapper):
 
     def __init__(self, environment: gym.Env, starter_rule):
-        self.players = cycle(range(2)) 
-        self.player_id = 1
+        self.players = cycle(range(1,3))         
         self.starter_rule = starter_rule       
         super().__init__(env=environment)
+        self.player_id = 1
 
     def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, dict[Any]]:
+        action.update({'player_id': self.player_id})
         observation, reward, terminated, truncated, info = self.env.step(action=action)
         if not info['illegal']:
-            next(self.players)
+            self.player_id = next(self.players)
         return observation, reward, terminated, truncated, info
 
     def reset(self, *args, **kwargs) -> Tuple[Any, dict[Any]]:
         observation, info = self.env.reset(*args, **kwargs)
-        self.player_id = self.starter_rule(info)
+        print('reset called')
+        # self.player_id = self.starter_rule(info)
         return observation, info          
