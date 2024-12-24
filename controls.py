@@ -2,7 +2,7 @@ from stable_baselines3.dqn import DQN
 from torch.nn import Tanh
 import numpy as np
 
-seed = 42
+seed = 43
 
 config = {
     'game' : {
@@ -12,7 +12,8 @@ config = {
         'observation':{'height': 7, 'width':7},
     },
     'state': lambda obs: obs['board'],
-    'reward': lambda obs: -1 if obs['illegal'] else 10 if obs['win'] else 0,
+    'reward': lambda obs: -1 if obs['illegal'] else 10 if obs['win'] else -10 if obs['loose'] else 0,
+    'end_condition': lambda obs: True if obs['win'] or obs['loose'] else False,  #obs['full'] or
     'action': lambda act: {'column': act},
     'agent': {
         'agent_type':DQN,
@@ -22,7 +23,7 @@ config = {
         'load_replay_buffer': False,
         'buffer_path':'.buf',
         'pretrain':False,
-        'total_timestep':5,
+        'total_timestep':100,
         'kwargs':{
             'policy': 'MlpPolicy',
             'train_freq':1,

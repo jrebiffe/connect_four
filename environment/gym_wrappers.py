@@ -1,6 +1,8 @@
+import traceback
 from typing import Tuple, Any, Callable, SupportsFloat
 import gymnasium as gym
 from itertools import cycle
+from copy import deepcopy
 
 
 class RewardWrapper(gym.Wrapper):
@@ -11,17 +13,19 @@ class RewardWrapper(gym.Wrapper):
     _reward value. This wrapper injects the computation at the end of the
     environment.step() function.
     """
-    def __init__(self, environment: gym.Env, compute_reward: Callable):
+    def __init__(self, environment: gym.Env, compute_reward: Callable, compute_termination: Callable):
         super().__init__(env=environment)
         self.compute_reward = compute_reward
+        self.compute_termination = compute_termination
 
     def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, dict[Any]]:
         observation, _, terminated, truncated, info = self.env.step(action=action)
 
         # Compute reward
         _reward = self.compute_reward(info)
+        _terminated = self.compute_termination(info)
 
-        return observation, _reward, terminated, truncated, info
+        return observation, _reward, _terminated, truncated, info
 
 class ActionWrapper(gym.Wrapper):
     """
@@ -115,13 +119,29 @@ class PlayerIDWrapper(gym.Wrapper):
         self.starter_rule = starter_rule       
         super().__init__(env=environment)
         self.player_id = 1
+        self.info_round = False
 
     def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, dict[Any]]:
+
         action.update({'player_id': self.player_id})
         observation, reward, terminated, truncated, info = self.env.step(action=action)
-        
-        if not info['illegal']:
+
+        # info['loose'] = False                
+        # if info['win']:
+        #     self.info_round = True
+        #     self.winner = deepcopy(self.player_id)
+        #     info['win'] = False
+        #     info['loose'] = True
+
+        if not info['illegal']: # or info['loose']:
             self.player_id = next(self.players)
+
+        # if self.info_round:
+        #     print('player:', self.player_id)
+        #     if self.winner == self.player_id:
+        #         info['win'] = True
+        #         info['loose'] = False
+
         print('illegal:', info['illegal'], 'player', self.player_id)
         return observation, reward, terminated, truncated, info
 
@@ -131,5 +151,28 @@ class PlayerIDWrapper(gym.Wrapper):
             self.player_id = next(self.players)
         observation, info = self.env.reset(*args, **kwargs)
         print('reset called')    
+        # traceback.print_stack()
         
-        return observation, info          
+        return observation, info     
+
+class SwitchWrapper(gym.Wrapper):
+    def __init__(self, env, agent, kwargs):
+        super(SwitchWrapper, self).__init__(env)
+        self.inner_agent = agent(env=env, **kwargs)
+
+    def step(self, action):
+        if self.env.get_wrapper_attr('player_id')==1:
+            observation, reward, done, truncated, info = self.env.step(action)
+            if info['win']:
+                # # if the main agent has won, the inner agent needs to be informed before closing the env
+                print('player 1 won')
+                self.inner_agent.learn()
+                observation, reward, done, truncated, info = self.inner_agent.temp
+        else:
+            self.inner_agent.learn()
+            observation, reward, done, truncated, info = self.inner_agent.temp
+        
+            if info['win']:
+                observation, reward, done, truncated, info = self.env.step(None)
+
+        return observation, reward, done, truncated, info     
