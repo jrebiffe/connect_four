@@ -1,12 +1,15 @@
 from controls import config
+
 import gymnasium as gym
 from environment.gym_adapter import ConnectFourAdapter
-from gym.wrappers import TransformReward, TransformObservation, TransformAction
+from gymnasium.wrappers import TransformReward, TransformObservation, TransformAction
 from stable_baselines3.common.evaluation import evaluate_policy
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
+print(config['init']['action']['n'])
 
 init_config = config["init"]
+gym.register('connect_four', entry_point=ConnectFourAdapter)
 env = gym.make("connect_four", config=init_config)
 
 # custom reward
@@ -53,26 +56,25 @@ class SwitchWrapper(gym.Wrapper):
         self.player = True
         agent = customAgent
         kwargs = config['agent']['kwargs']
-        kwargs['seed'] = config['seed']
         self.inner_agent = agent(env=env, **kwargs)
         total_timestep = config['agent']['total_timestep']
-        agent.learn(total_timesteps=total_timestep)
+        self.inner_agent.learn(total_timesteps=total_timestep)
 
     def step(self, action):
         if self.player:
             observation, reward, done, truncated, info = self.env.step(action)
-            self.player = ~self.player
+            self.player = not self.player
         else:
             observation, reward, done, truncated, info = self.inner_agent.temp
-            self.player = ~self.player
+            self.player = not self.player
 
         return observation, reward, done, truncated, info
 
+env = SwitchWrapper(env)
 
 # AGENT
 agent = config['agent']['agent_type']
 kwargs = config['agent']['kwargs']
-kwargs['seed'] = config['seed']
 
 agent = agent(env=env, **kwargs)
 
@@ -96,5 +98,18 @@ if config['agent'].get('load_replay_buffer', False):
 #TRAINING
 total_timestep = config['agent']['total_timestep']
 
-agent.learn(total_timesteps=total_timestep)
+# agent.learn(total_timesteps=total_timestep)
+# env.close()
+
+action = [1,4,5,6,2,2]
+
+for _ in range(4):
+    obs, info = env.reset()
+    for i in range(6):
+        obs, reward, done, truncated, info = env.step(action=action[i])
+        print(obs)
+
+        if truncated or done:
+            break
+
 env.close()

@@ -32,10 +32,7 @@ config = {
             'gradient_steps': 1,
             'policy_kwargs':{
                 'activation_fn': Tanh,
-                'net_arch': {
-                    'pi': [64, 64],
-                    'qf': [64, 64],
-                },
+                'net_arch': [64, 64],
             },
         },
     },
