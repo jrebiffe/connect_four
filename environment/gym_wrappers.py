@@ -119,12 +119,17 @@ class PlayerIDWrapper(gym.Wrapper):
     def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, dict[Any]]:
         action.update({'player_id': self.player_id})
         observation, reward, terminated, truncated, info = self.env.step(action=action)
+        
         if not info['illegal']:
             self.player_id = next(self.players)
+        print('illegal:', info['illegal'], 'player', self.player_id)
         return observation, reward, terminated, truncated, info
 
     def reset(self, *args, **kwargs) -> Tuple[Any, dict[Any]]:
+        target_id = self.starter_rule()
+        while self.player_id != target_id :
+            self.player_id = next(self.players)
         observation, info = self.env.reset(*args, **kwargs)
-        print('reset called')
-        # self.player_id = self.starter_rule(info)
+        print('reset called')    
+        
         return observation, info          
