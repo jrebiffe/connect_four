@@ -98,7 +98,7 @@ save_path = agent_config['model_path']
 save_freq = agent_config['save_freq']
 # Save a checkpoint
 checkpoint_callback = CheckpointCallback(save_freq=save_freq, save_path=save_path)
-eval_callback =EvalCallback(eval_env)
+eval_callback =EvalCallback(eval_env, **eval_kwargs)
 
 
 agent.learn(total_timesteps=total_timestep, callback=[checkpoint_callback, eval_callback])

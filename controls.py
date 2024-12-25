@@ -19,7 +19,7 @@ config = {
     'output_agent_2': r"run\\agent_2\\",
     'output_agent_1': r"run\\agent_1\\",
     'agent_eval': {
-        'type':HumanAgent,
+        'type':HumanAgent(),
         'eval_kwargs':{
             'n_eval_episodes': 1, 
             'eval_freq': 250
