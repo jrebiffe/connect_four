@@ -152,10 +152,10 @@ class SwitchWrapper(gym.Wrapper):
         self.init_info = info
 
         if self.env.get_wrapper_attr('player_id')!=1:
-            self.inner_agent.last_obs = observation
-            actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
-            observation, reward, done, truncated, info = self.env.step(actions[0])
-            self.inner_agent.store_obs(buffer_actions, [observation], [reward], [done], [info])
+            self.inner_agent.render(observation)
+            action = self.inner_agent.call_action()
+            observation, reward, done, truncated, info = self.env.step(action)
+            self.inner_agent.result(observation, reward, done, info)
 
         return observation, info
 

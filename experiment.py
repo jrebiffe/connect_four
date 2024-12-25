@@ -3,9 +3,8 @@ from controls import config
 import gymnasium as gym
 from environment.gym_adapter import ConnectFourAdapter
 from environment.gym_wrappers import RewardWrapper, ObservationWrapper, ActionWrapper, PlayerIDWrapper, SwitchWrapper, customMonitorWrapper
-from stable_baselines3.common.callbacks import CheckpointCallback
+from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from agent.utils import agent_follow
-from agent.human_agent import HumanAgent
 from stable_baselines3.common.evaluation import evaluate_policy
 from gymnasium import spaces
 import numpy as np
@@ -40,17 +39,23 @@ action_space = spaces.Discrete(init_config['observation']['width'])
 action_fct = config['action']
 env = ActionWrapper(env, action_fct, action_space)
 
+# eval
+eval_config = config['agent_eval']
+eval_kwargs = eval_config['eval_kwargs']
+agent_eval = eval_config['type']
+file_name = eval_config['output']
+eval_env = SwitchWrapper(env, agent_eval)
+eval_env = customMonitorWrapper(eval_env, file_name, info_keywords=tuple(['win', 'loose', 'full']))
+
 # agent switch
-agent_eval = config['agent_eval']
 agent_config = config['agent']
 agent_type = agent_config['agent_type']
 agent = agent_follow(agent_type)
 kwargs = agent_config['kwargs']
-eval_env = SwitchWrapper(env, agent_eval)
 env = SwitchWrapper(env, agent(env=env, **kwargs))
 
 # Monitor
-file_name = config['output_agent_1']
+file_name = agent_config['output']
 env = customMonitorWrapper(env, file_name, info_keywords=tuple(['win', 'loose', 'full']))
 
 class TestWrapper(gym.Wrapper):
@@ -95,9 +100,10 @@ save_path = agent_config['model_path']
 save_freq = agent_config['save_freq']
 # Save a checkpoint
 checkpoint_callback = CheckpointCallback(save_freq=save_freq, save_path=save_path)
+eval_callback =EvalCallback(eval_env, **eval_kwargs)
 
 
-agent.learn(total_timesteps=total_timestep, callback=checkpoint_callback)
+agent.learn(total_timesteps=total_timestep, callback=[checkpoint_callback, eval_callback])
 env.close()
 
 # action = [1,2,3]
