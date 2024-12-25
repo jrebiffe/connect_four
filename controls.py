@@ -1,4 +1,5 @@
 from stable_baselines3.dqn import DQN
+from agent.human_agent import HumanAgent
 from torch.nn import Tanh
 import numpy as np
 
@@ -17,7 +18,13 @@ config = {
     'action': lambda act: {'column': act},
     'output_agent_2': r"run\\agent_2\\",
     'output_agent_1': r"run\\agent_1\\",
-    'agent_eval': HumanAgent,
+    'agent_eval': {
+        'type':HumanAgent,
+        'eval_kwargs':{
+            'n_eval_episodes': 1, 
+            'eval_freq': 250
+            },
+        },
     'agent': {
         'agent_type':DQN,
         'load_pretrained_model': False,
