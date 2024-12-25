@@ -84,7 +84,8 @@ if agent_config.get('load_pretrained_model', False):
 
 if agent_config.get('evaluate_policy', False):  
     pretrained = agent_config.get('model_path')
-    evaluate_policy(pretrained, env=eval_env, **eval_kwargs)
+    agent.load(pretrained)
+    evaluate_policy(agent, env=eval_env)
 
 if agent_config.get('load_replay_buffer', False):  
     pretrained = agent_config.get('buffer_path')

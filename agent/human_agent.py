@@ -25,12 +25,13 @@ class HumanAgent:
         board = rot90(board)
         print(" ", end="")
         for index, line in enumerate(board[0, :]):
-            print(index, end="")
+            print(index, end=" ")
         print()
 
         for line in board:
-            print("|", end="")
+            # print("|", end="")
             for column in line:
+                print("|", end="")
                 if column == 0:
                     print(" ", end="")
                 elif column == 1:
@@ -41,4 +42,9 @@ class HumanAgent:
 
     def result(self, new_obs, reward, done, info) -> None:
         """Display RL agent's `step()` output to the human."""
-        print(new_obs, reward, done, info)
+        self.render(new_obs)
+        if info['win']:
+            print('You won!')
+        if info['loose']:
+            print('Looooooser')
+        # print(reward, done, info)
