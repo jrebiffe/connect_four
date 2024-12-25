@@ -15,26 +15,26 @@ config = {
     'state': lambda obs: obs['board'],
     'reward': lambda obs: -1 if obs['illegal'] else 10 if obs['win'] else -10 if obs['loose'] else 0,
     'end_condition': lambda obs: True if obs['full'] or obs['win'] or obs['loose'] else False,  #
-    'action': lambda act: {'column': act},
-    'output_agent_2': r"run\\agent_2\\",
-    'output_agent_1': r"run\\agent_1\\",
+    'action': lambda act: {'column': act},   
     'agent_eval': {
+        'output': r"run\\eval\\",
         'type':HumanAgent(),
         'eval_kwargs':{
             'n_eval_episodes': 1, 
-            'eval_freq': 250
+            'eval_freq': 100
             },
         },
     'agent': {
+        'output': r"run\\agent_1\\",
         'agent_type':DQN,
         'load_pretrained_model': False,
         'model_path':r"run\\model\\",
-        'save_freq': 500,
+        'save_freq': 250,
         'evaluate':False,
         'load_replay_buffer': False,
         'buffer_path':'.buf',
         'pretrain':False,
-        'total_timestep':10000,
+        'total_timestep':500,
         'kwargs':{
             'policy': 'MlpPolicy',
             'train_freq':1,

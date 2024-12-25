@@ -43,7 +43,9 @@ env = ActionWrapper(env, action_fct, action_space)
 eval_config = config['agent_eval']
 eval_kwargs = eval_config['eval_kwargs']
 agent_eval = eval_config['type']
+file_name = eval_config['output']
 eval_env = SwitchWrapper(env, agent_eval)
+eval_env = customMonitorWrapper(eval_env, file_name, info_keywords=tuple(['win', 'loose', 'full']))
 
 # agent switch
 agent_config = config['agent']
@@ -53,7 +55,7 @@ kwargs = agent_config['kwargs']
 env = SwitchWrapper(env, agent(env=env, **kwargs))
 
 # Monitor
-file_name = config['output_agent_1']
+file_name = agent_config['output']
 env = customMonitorWrapper(env, file_name, info_keywords=tuple(['win', 'loose', 'full']))
 
 class TestWrapper(gym.Wrapper):
