@@ -3,7 +3,9 @@ from controls import config
 import gymnasium as gym
 from environment.gym_adapter import ConnectFourAdapter
 from environment.gym_wrappers import RewardWrapper, ObservationWrapper, ActionWrapper, PlayerIDWrapper, SwitchWrapper, customMonitorWrapper
+from stable_baselines3.common.callbacks import CheckpointCallback
 from agent.utils import agent_follow
+from agent.human_agent import HumanAgent
 from stable_baselines3.common.evaluation import evaluate_policy
 from gymnasium import spaces
 import numpy as np
@@ -39,10 +41,13 @@ action_fct = config['action']
 env = ActionWrapper(env, action_fct, action_space)
 
 # agent switch
-agent_type = config['agent']['agent_type']
+agent_eval = config['agent_eval']
+agent_config = config['agent']
+agent_type = agent_config['agent_type']
 agent = agent_follow(agent_type)
-kwargs = config['agent']['kwargs']
-env = SwitchWrapper(env, agent, kwargs)
+kwargs = agent_config['kwargs']
+eval_env = SwitchWrapper(env, agent_eval)
+env = SwitchWrapper(env, agent(env=env, **kwargs))
 
 # Monitor
 file_name = config['output_agent_1']
@@ -60,32 +65,39 @@ class TestWrapper(gym.Wrapper):
 env = TestWrapper(env) 
 
 # AGENT
-agent = config['agent']['agent_type']
-kwargs = config['agent']['kwargs']
+agent_config = config['agent']
+agent = agent_config['agent_type']
+kwargs = agent_config['kwargs']
 
 agent = agent(env=env, **kwargs)
 
-if config['agent'].get('load_pretrained_model', False):
-    pretrained = config['agent'].get('model_path')
+if agent_config.get('load_pretrained_model', False):
+    pretrained = agent_config.get('model_path')
     agent.load(pretrained, env=env)
     if config['agent'].get('evaluate', False):  
         agent.set_training_mode(False)
 
-if config['agent'].get('evaluate_policy', False):  
-    pretrained = config['agent'].get('model_path')
-    kwargs = config['agent']['eval_kwargs']
+if agent_config.get('evaluate_policy', False):  
+    pretrained = agent_config.get('model_path')
+    kwargs = agent_config['eval_kwargs']
     evaluate_policy(pretrained, env=env, **kwargs)
 
-if config['agent'].get('load_replay_buffer', False):  
-    pretrained = config['agent'].get('buffer_path')
+if agent_config.get('load_replay_buffer', False):  
+    pretrained = agent_config.get('buffer_path')
     agent.load_replay_buffer(pretrained)
-    if config['agent'].get('pretrain', False):
+    if agent_config.get('pretrain', False):
         agent.train()
 
 #TRAINING
-total_timestep = config['agent']['total_timestep']
+total_timestep = agent_config['total_timestep']
 
-agent.learn(total_timesteps=total_timestep)
+save_path = agent_config['model_path']
+save_freq = agent_config['save_freq']
+# Save a checkpoint
+checkpoint_callback = CheckpointCallback(save_freq=save_freq, save_path=save_path)
+
+
+agent.learn(total_timesteps=total_timestep, callback=checkpoint_callback)
 env.close()
 
 # action = [1,2,3]

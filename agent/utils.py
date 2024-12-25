@@ -16,21 +16,29 @@ def agent_follow(agent_type):
 
             self._setup_learn(total_timesteps=10000000000000)
 
-        def store_obs(self, buffer_action,
-            new_obs, reward, dones, infos) -> None:
+        def render(self, board):
+            self.last_obs = board
+
+        def call_action(self):
+            actions, buffer_actions = self._sample_action(self.learning_starts)
+            self.buffer_actions = buffer_actions
+            return actions[0]
+        
+        def result(self,
+            new_obs, reward, done, info) -> None:
 
             self.num_collected_steps += 1
 
             # Retrieve reward and episode length if using Monitor wrapper
-            self._update_info_buffer(infos, dones)
+            self._update_info_buffer([info], [done])
 
 
             # self.temp = new_obs, reward[0], dones[0], infos[0]['TimeLimit.truncated'], infos[0]
-            super()._store_transition(self.replay_buffer, buffer_action, new_obs, reward, dones, infos)
+            super()._store_transition(self.replay_buffer, self.buffer_actions, [new_obs], [reward], [done], [info])
 
             # save temporary what the agent sees
-            print('reward player 2: ', reward[0])
-            print(new_obs[0])
+            print('reward player 2: ', reward)
+            print(new_obs)
 
             if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts:
                 # If no `gradient_steps` is specified,

@@ -109,9 +109,9 @@ class PlayerIDWrapper(gym.Wrapper):
         return self.env.reset(*args, **kwargs)    
 
 class SwitchWrapper(gym.Wrapper):
-    def __init__(self, env, agent, kwargs):
+    def __init__(self, env, agent):
         super(SwitchWrapper, self).__init__(env)
-        self.inner_agent = agent(env=env, **kwargs)
+        self.inner_agent = agent
 
     def step(self, action):
         transition = list(self.env.step(action))
@@ -119,17 +119,21 @@ class SwitchWrapper(gym.Wrapper):
         done = transition[2]
 
         if done:
-            self.inner_agent.last_obs = transition[0]
-            actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
+            self.inner_agent.render(transition[0])
+            # self.inner_agent.last_obs = transition[0]
+            # actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
+            action = self.inner_agent.call_action()
             observation, reward, done, truncated, info = self.env.step(None)
-            self.inner_agent.store_obs(buffer_actions, [observation], [reward], [done], [info])
+            self.inner_agent.result(observation, reward, done, info)
             return transition
 
         while self.env.get_wrapper_attr('player_id')!=1:
-            self.inner_agent.last_obs = transition[0]
-            actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
-            observation, reward, done, truncated, info = self.env.step(actions[0])
-            self.inner_agent.store_obs(buffer_actions, [observation], [reward], [done], [info])
+            self.inner_agent.render(transition[0])
+            # self.inner_agent.last_obs = transition[0]
+            # actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
+            action = self.inner_agent.call_action()
+            observation, reward, done, truncated, info = self.env.step(action)
+            self.inner_agent.result(observation, reward, done, info)
             transition[0] = observation
 
         if done:
