@@ -50,9 +50,9 @@ eval_env = customMonitorWrapper(eval_env, file_name, info_keywords=tuple(['win',
 # agent switch
 agent_config = config['agent']
 agent_type = agent_config['agent_type']
-agent = agent_follow(agent_type)
-kwargs = agent_config['kwargs']
-env = SwitchWrapper(env, agent(env=env, **kwargs))
+eval_agent = agent_follow(agent_type)
+eval_kwargs = agent_config['kwargs']
+env = SwitchWrapper(env, eval_agent(env=env, **eval_kwargs))
 
 # Monitor
 file_name = agent_config['output']
@@ -84,8 +84,7 @@ if agent_config.get('load_pretrained_model', False):
 
 if agent_config.get('evaluate_policy', False):  
     pretrained = agent_config.get('model_path')
-    kwargs = agent_config['eval_kwargs']
-    evaluate_policy(pretrained, env=env, **kwargs)
+    evaluate_policy(pretrained, env=eval_env, **eval_kwargs)
 
 if agent_config.get('load_replay_buffer', False):  
     pretrained = agent_config.get('buffer_path')
@@ -100,10 +99,13 @@ save_path = agent_config['model_path']
 save_freq = agent_config['save_freq']
 # Save a checkpoint
 checkpoint_callback = CheckpointCallback(save_freq=save_freq, save_path=save_path)
-eval_callback =EvalCallback(eval_env, **eval_kwargs)
 
+callbacks = [checkpoint_callback]
+if eval_config.get('use_while_training', False):
+    eval_callback =EvalCallback(eval_env, **eval_kwargs)
+    callbacks.append(eval_callback)
 
-agent.learn(total_timesteps=total_timestep, callback=[checkpoint_callback, eval_callback])
+agent.learn(total_timesteps=total_timestep, callback=callbacks)
 env.close()
 
 # action = [1,2,3]

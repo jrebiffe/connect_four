@@ -17,6 +17,7 @@ config = {
     'end_condition': lambda obs: True if obs['full'] or obs['win'] or obs['loose'] else False,  #
     'action': lambda act: {'column': act},   
     'agent_eval': {
+        'use_while_training':False,
         'output': r"run\\eval\\",
         'type':HumanAgent(),
         'eval_kwargs':{
@@ -28,13 +29,13 @@ config = {
         'output': r"run\\agent_1\\",
         'agent_type':DQN,
         'load_pretrained_model': False,
-        'model_path':r"run\\model\\",
-        'save_freq': 250,
-        'evaluate':False,
+        'model_path':r"run\\model\\rl_model_1000_steps",
+        'save_freq': 500,
+        'evaluate':True,
         'load_replay_buffer': False,
         'buffer_path':'.buf',
         'pretrain':False,
-        'total_timestep':500,
+        'total_timestep':10000,
         'kwargs':{
             'policy': 'MlpPolicy',
             'train_freq':1,
