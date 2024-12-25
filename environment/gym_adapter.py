@@ -8,9 +8,10 @@ class ConnectFourAdapter(gym.Env):
 
     def __init__(self, config):
         super().__init__()
-         #config['init'])
-        self.action_space = gym.spaces.Box(low=-1, high=1)
-        self.observation_space = gym.spaces.Box(low=-1, high=1)
+        self.height = config['observation']['height']
+        self.width = config['observation']['width']
+        self.action_space = gym.spaces.Box(low=0, high=self.width)
+        self.observation_space = gym.spaces.Box(low=0, high=2)
         # self.game_over = False
 
     def step(self, action):
@@ -44,7 +45,7 @@ class ConnectFourAdapter(gym.Env):
         #     return None, self.init_obs #TODO renvoyer les board avec le premier jeton du prochain joueur si c'est lui qui commence
 
         observation = None #{'board': self.game.observe()}
-        self.game = Game()
+        self.game = Game(self.height, self.width)
         info = {'board': self.game.observe()}
         self.game_over = False
         self.init_obs = deepcopy(info)

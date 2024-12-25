@@ -84,10 +84,10 @@ class ObservationWrapper(gym.Wrapper):
 class PlayerIDWrapper(gym.Wrapper):
 
     def __init__(self, environment: gym.Env, starter_rule):
-        self.players = cycle(range(1,3))         
+        self.nb_players = 2         
         self.starter_rule = starter_rule       
         super().__init__(env=environment)
-        self.player_id = 2
+        # self.player_id = 2
 
     def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, dict[Any]]:
 
@@ -95,16 +95,15 @@ class PlayerIDWrapper(gym.Wrapper):
         observation, reward, terminated, truncated, info = self.env.step(action=action)
 
         if not info['illegal']: # or info['loose']:
-            self.player_id = next(self.players)
+            self.player_id = self.player_id % self.nb_players +1
         else:
             print('illegal action by player ', self.player_id)
 
         return observation, reward, terminated, truncated, info
 
     def reset(self, *args, **kwargs) -> Tuple[Any, dict[Any]]:
-        target_id = self.starter_rule()
-        while self.player_id != target_id :
-            self.player_id = next(self.players)
+        self.player_id = self.starter_rule()
+
         print('reset called') 
 
         return self.env.reset(*args, **kwargs)    
@@ -126,7 +125,7 @@ class SwitchWrapper(gym.Wrapper):
             self.inner_agent.store_obs(buffer_actions, [observation], [reward], [done], [info])
             return transition
 
-        while self.env.get_wrapper_attr('player_id')==2:
+        while self.env.get_wrapper_attr('player_id')!=1:
             self.inner_agent.last_obs = transition[0]
             actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
             observation, reward, done, truncated, info = self.env.step(actions[0])

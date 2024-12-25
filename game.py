@@ -16,9 +16,11 @@ class MoveStatus(TypedDict):
 class Game:
     """Connect Four game."""
 
-    def __init__(self) -> None:
+    def __init__(self, height, width) -> None:
         # TODO(Jean): Variablize board size (Fanny's suggestion)
-        self.board = zeros((7, 7), dtype=int_)
+        self.height = height
+        self.width = width
+        self.board = zeros((width, height), dtype=int_)
 
     def observe(self) -> ndarray:
         """Read the current board state."""
@@ -49,7 +51,7 @@ class Game:
                 return True
 
         lower = max(0, column - 3)
-        higher = min(7, column + 4)
+        higher = min(self.width, column + 4)
         line = self.board[lower:higher, height]
         sublines = sliding_window_view(line, 4)
         fours = (sublines == value).all(axis=1)

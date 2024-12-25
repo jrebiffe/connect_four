@@ -26,15 +26,15 @@ state_fct = config['state']
 observation_space = spaces.Box(
     low=0, 
     high=2,
-    shape=(1,
-        init_config['observation']['height'], 
-        init_config['observation']['width']), 
+    shape=( 
+        init_config['observation']['width'],
+        init_config['observation']['height']), 
     dtype=np.uint8
     )
 env = ObservationWrapper(env, state_fct, observation_space)
 
 # custom action
-action_space = spaces.Discrete(init_config['action']['n'])
+action_space = spaces.Discrete(init_config['observation']['width'])
 action_fct = config['action']
 env = ActionWrapper(env, action_fct, action_space)
 
@@ -47,7 +47,6 @@ env = SwitchWrapper(env, agent, kwargs)
 # Monitor
 file_name = config['output_agent_1']
 env = customMonitorWrapper(env, file_name, info_keywords=tuple(['win', 'loose', 'full']))
-
 
 class TestWrapper(gym.Wrapper):
     count = 0

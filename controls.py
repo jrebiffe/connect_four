@@ -8,8 +8,8 @@ config = {
     'game' : {
         'name': 'connect_four',
         'first_player_rule': lambda : np.random.choice([1,2]), #lambda info['nb']: np.random.choice(range(nb))
-        'action': {'n': 7},
-        'observation':{'height': 7, 'width':7},
+        # 'action': {'n': 7}, #action = width
+        'observation':{'height': 6, 'width':7},
     },
     'state': lambda obs: obs['board'],
     'reward': lambda obs: -1 if obs['illegal'] else 10 if obs['win'] else -10 if obs['loose'] else 0,
