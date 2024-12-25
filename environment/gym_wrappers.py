@@ -3,14 +3,14 @@ from typing import Tuple, Any, Callable, SupportsFloat
 import gymnasium as gym
 from itertools import cycle
 from copy import deepcopy
+from stable_baselines3.common.monitor import Monitor
 
 
 class RewardWrapper(gym.Wrapper):
     """
     RewardWrapper
 
-    Apply transformation function to the observation, resulting in new
-    _reward value. This wrapper injects the computation at the end of the
+    This wrapper injects the computation at the end of the
     environment.step() function.
     """
     def __init__(self, environment: gym.Env, compute_reward: Callable, compute_termination: Callable):
@@ -29,9 +29,6 @@ class RewardWrapper(gym.Wrapper):
 
 class ActionWrapper(gym.Wrapper):
     """
-    ActionWrapper
-
-    Transform action before passing it to the environment
     """
     def __init__(self,
                  environment: gym.Env,
@@ -47,16 +44,6 @@ class ActionWrapper(gym.Wrapper):
 
     def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, dict[Any]]:
         """
-        step
-
-        Parameters
-        ----------
-        action : Any
-
-        Returns
-        -------
-        Tuple[Any, SupportsFloat, bool, bool, dict[Any]]
-            observation, reward, terminated, truncated, info
         """
         _action = self.transform_action(action)
         return self.env.step(_action)
@@ -69,10 +56,6 @@ class ObservationWrapper(gym.Wrapper):
                  observation_transformation_function: Callable,
                  observation_space: gym.Space = None):
         """
-        Parameters
-        ----------
-        environment
-        observation_transformation_function
         """
         super().__init__(env=environment)
 
@@ -85,15 +68,6 @@ class ObservationWrapper(gym.Wrapper):
     def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, dict[Any]]:
         """
         step
-
-        Parameters
-        ----------
-        action : Any
-
-        Returns
-        -------
-        Tuple[Any, SupportsFloat, bool, bool, dict[Any]]
-            observation, reward, terminated, truncated, info
         """
         observation, reward, terminated, truncated, info = self.env.step(action=action)
         _observation = self.transform_observation(info)
@@ -102,13 +76,8 @@ class ObservationWrapper(gym.Wrapper):
     def reset(self, *args, **kwargs) -> Tuple[Any, dict[Any]]:
         """
         reset
-
-        Returns
-        -------
-        Tuple[Any, dict[Any]]
-            observation, info
         """
-        observation, info = self.env.reset(*args, **kwargs)
+        _, info = self.env.reset(*args, **kwargs)
         _observation = self.transform_observation(info)
         return _observation, info
 
@@ -118,42 +87,27 @@ class PlayerIDWrapper(gym.Wrapper):
         self.players = cycle(range(1,3))         
         self.starter_rule = starter_rule       
         super().__init__(env=environment)
-        self.player_id = 1
-        self.info_round = False
+        self.player_id = 2
 
     def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, dict[Any]]:
 
         action.update({'player_id': self.player_id})
         observation, reward, terminated, truncated, info = self.env.step(action=action)
 
-        # info['loose'] = False                
-        # if info['win']:
-        #     self.info_round = True
-        #     self.winner = deepcopy(self.player_id)
-        #     info['win'] = False
-        #     info['loose'] = True
-
         if not info['illegal']: # or info['loose']:
             self.player_id = next(self.players)
+        else:
+            print('illegal action by player ', self.player_id)
 
-        # if self.info_round:
-        #     print('player:', self.player_id)
-        #     if self.winner == self.player_id:
-        #         info['win'] = True
-        #         info['loose'] = False
-
-        print('illegal:', info['illegal'], 'player', self.player_id)
         return observation, reward, terminated, truncated, info
 
     def reset(self, *args, **kwargs) -> Tuple[Any, dict[Any]]:
         target_id = self.starter_rule()
         while self.player_id != target_id :
             self.player_id = next(self.players)
-        observation, info = self.env.reset(*args, **kwargs)
-        print('reset called')    
-        # traceback.print_stack()
-        
-        return observation, info     
+        print('reset called') 
+
+        return self.env.reset(*args, **kwargs)    
 
 class SwitchWrapper(gym.Wrapper):
     def __init__(self, env, agent, kwargs):
@@ -161,18 +115,49 @@ class SwitchWrapper(gym.Wrapper):
         self.inner_agent = agent(env=env, **kwargs)
 
     def step(self, action):
-        if self.env.get_wrapper_attr('player_id')==1:
-            observation, reward, done, truncated, info = self.env.step(action)
-            if done: #info['win']:
-                # # if the main agent has won, the inner agent needs to be informed before closing the env
-                print('player 1 won')
-                self.inner_agent.learn()
-                observation, reward, done, truncated, info = self.inner_agent.temp
-        else:
-            self.inner_agent.learn()
-            observation, reward, done, truncated, info = self.inner_agent.temp
-        
-            if done: #info['win']:
-                observation, reward, done, truncated, info = self.env.step(None)
+        transition = list(self.env.step(action))
 
-        return observation, reward, done, truncated, info     
+        done = transition[2]
+
+        if done:
+            self.inner_agent.last_obs = transition[0]
+            actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
+            observation, reward, done, truncated, info = self.env.step(None)
+            self.inner_agent.store_obs(buffer_actions, [observation], [reward], [done], [info])
+            return transition
+
+        while self.env.get_wrapper_attr('player_id')==2:
+            self.inner_agent.last_obs = transition[0]
+            actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
+            observation, reward, done, truncated, info = self.env.step(actions[0])
+            self.inner_agent.store_obs(buffer_actions, [observation], [reward], [done], [info])
+            transition[0] = observation
+
+        if done:
+            observation, reward, done, truncated, info = self.env.step(None)
+            transition[0] = observation
+            transition[1] += reward
+            transition[2] |= done
+            transition[3] |= truncated
+            transition[4] = info
+
+        return transition 
+    
+    def reset(self, *args, **kwargs) -> Tuple[Any, dict[Any]]:
+        observation, info = self.env.reset(*args, **kwargs) 
+        self.init_obs = observation
+        self.init_info = info
+
+        if self.env.get_wrapper_attr('player_id')!=1:
+            self.inner_agent.last_obs = observation
+            actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
+            observation, reward, done, truncated, info = self.env.step(actions[0])
+            self.inner_agent.store_obs(buffer_actions, [observation], [reward], [done], [info])
+
+        return observation, info
+
+class customMonitorWrapper(Monitor):
+    def step(self, action: Any) -> Tuple[Any, SupportsFloat, bool, bool, dict[Any]]:
+        observation, reward, done, truncated, info = super().step(action)
+        self.needs_reset = False
+        return observation, reward, done, truncated, info 
