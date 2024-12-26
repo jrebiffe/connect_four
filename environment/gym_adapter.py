@@ -34,6 +34,8 @@ class ConnectFourAdapter(gym.Env):
         info = deepcopy(obs)
         info.update({'board': self.game.observe()})
         info.update({'loose': False})
+        self.illegal_count += info['illegal']
+        # info.update({'illegal_excess': False if self.illegal_count<10 else True})
 
         self.last_obs = deepcopy(info)
         # self.game_over = obs['win'] or obs['full']
@@ -49,6 +51,7 @@ class ConnectFourAdapter(gym.Env):
         info = {'board': self.game.observe()}
         self.game_over = False
         self.init_obs = deepcopy(info)
+        self.illegal_count = 0
         return observation, info
 
     def render(self):

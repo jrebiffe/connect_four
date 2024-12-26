@@ -4,7 +4,7 @@ import gymnasium as gym
 from environment.gym_adapter import ConnectFourAdapter
 from environment.gym_wrappers import RewardWrapper, ObservationWrapper, ActionWrapper, PlayerIDWrapper, SwitchWrapper, customMonitorWrapper
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
-from agent.utils import agent_follow
+from agent.utils import agent_follow, attach_eval_agent
 from stable_baselines3.common.evaluation import evaluate_policy
 from gymnasium import spaces
 import numpy as np
@@ -42,21 +42,31 @@ env = ActionWrapper(env, action_fct, action_space)
 # eval
 eval_config = config['agent_eval']
 eval_kwargs = eval_config['eval_kwargs']
-agent_eval = eval_config['type']
+# agent_eval = eval_config['type']
 file_name = eval_config['output']
+eval_config['env'] = env
+
+# agent_config = config['agent']
+# agent = agent_config['agent_type']
+# kwargs = agent_config['kwargs']
+# agent = agent(env=env, **kwargs)
+# pretrained = agent_config.get('model_path')
+# agent.load(pretrained)
+agent_eval = attach_eval_agent(eval_config)
 eval_env = SwitchWrapper(env, agent_eval)
-eval_env = customMonitorWrapper(eval_env, file_name, info_keywords=tuple(['win', 'loose', 'full']))
+eval_env = customMonitorWrapper(eval_env, file_name, info_keywords=tuple(config['monitor_param']))
+
 
 # agent switch
 agent_config = config['agent']
-agent_type = agent_config['agent_type']
-eval_agent = agent_follow(agent_type)
+# agent_type = agent_config['agent_type']
+eval_agent = agent_follow(agent_config)
 eval_kwargs = agent_config['kwargs']
 env = SwitchWrapper(env, eval_agent(env=env, **eval_kwargs))
 
 # Monitor
 file_name = agent_config['output']
-env = customMonitorWrapper(env, file_name, info_keywords=tuple(['win', 'loose', 'full']))
+env = customMonitorWrapper(env, file_name, info_keywords=tuple(config['monitor_param']))
 
 class TestWrapper(gym.Wrapper):
     count = 0
@@ -77,13 +87,13 @@ kwargs = agent_config['kwargs']
 agent = agent(env=env, **kwargs)
 
 if agent_config.get('load_pretrained_model', False):
-    pretrained = agent_config.get('model_path')
+    pretrained = agent_config.get('pretrained_model_path')
     agent.load(pretrained, env=env)
     if config['agent'].get('evaluate', False):  
         agent.set_training_mode(False)
 
 if agent_config.get('evaluate_policy', False):  
-    pretrained = agent_config.get('model_path')
+    pretrained = agent_config.get('policy_path')
     agent.load(pretrained)
     evaluate_policy(agent, env=eval_env)
 
@@ -103,7 +113,8 @@ checkpoint_callback = CheckpointCallback(save_freq=save_freq, save_path=save_pat
 
 callbacks = [checkpoint_callback]
 if eval_config.get('use_while_training', False):
-    eval_callback =EvalCallback(eval_env, **eval_kwargs)
+
+    eval_callback =EvalCallback(eval_env, **eval_config['eval_kwargs'])
     callbacks.append(eval_callback)
 
 agent.learn(total_timesteps=total_timestep, callback=callbacks)
