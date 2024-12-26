@@ -70,13 +70,14 @@ def attach_eval_agent(agent_config):
                 self.last_obs = board
 
             def call_action(self):
+    
                 if self.info.get('illegal',False):
                     action = self.previous_action +1
                 else:
-                    action = self.agent.predict(self.last_obs, deterministic=True)
+                    action = self.agent.predict(self.last_obs, deterministic=True)[0]
                 self.previous_action = action
 
-                return action[0]
+                return action
             
             def result(self,
                 new_obs, reward, done, info) -> None:
