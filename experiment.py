@@ -69,14 +69,12 @@ file_name = agent_config['output']
 env = customMonitorWrapper(env, file_name, info_keywords=tuple(config['monitor_param']))
 
 class TestWrapper(gym.Wrapper):
-    count = 0
+    
     def step(self, action):
-        
         observation, reward, done, truncated, info = self.env.step(action)
         print('reward agent 1: ', reward)
-
-        # self.env.get_wrapper_attr('player_id')==1
         return observation, reward, done, truncated, info
+
 env = TestWrapper(env) 
 
 # AGENT

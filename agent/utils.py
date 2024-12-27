@@ -1,5 +1,6 @@
 from collections import deque
 from agent.human_agent import HumanAgent
+import numpy as np
 
 def agent_follow(agent_config):
     agent_type = agent_config['agent_type']
@@ -38,6 +39,14 @@ def agent_follow(agent_config):
             # self.temp = new_obs, reward[0], dones[0], infos[0]['TimeLimit.truncated'], infos[0]
             super()._store_transition(self.replay_buffer, self.buffer_actions, [new_obs], [reward], [done], [info])
 
+            self._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)
+
+            # For DQN, check if the target network should be updated
+            # and update the exploration schedule
+            # For SAC/TD3, the update is dones as the same time as the gradient update
+            # see https://github.com/hill-a/stable-baselines/issues/900
+            self._on_step()
+            
             # save temporary what the agent sees
             print('reward player 2: ', reward)
             print(new_obs)
@@ -52,35 +61,63 @@ def agent_follow(agent_config):
 
     return customAgent
 
+def pretainedAgent(agent_config):
+    class loadedAgent():
+        def __init__(self) -> None:
+            agent = agent_config['agent_type']
+            kwargs = agent_config.get('agent_kwargs', {})
+            env = agent_config['env']
+            pretrained = agent_config['policy_path']
+            self.agent = agent(env=env, **kwargs)  
+            self.agent.load(pretrained)
+            self.info = {}
+
+        def render(self, board):
+            self.last_obs = board
+
+        def call_action(self):
+
+            if self.info.get('illegal',False):
+                action = (self.previous_action+1) % 7
+            else:
+                action = self.agent.predict(self.last_obs, deterministic=False)[0]
+            self.previous_action = action
+
+            return action
+        
+        def result(self,
+            new_obs, reward, done, info) -> None:
+            self.info = info
+            return
+    return loadedAgent()
+
+def rdmAgent():
+    class createRdmAgent():
+        def __init__(self) -> None:
+            self.info = {}
+        def render(self, board):
+            return
+
+        def call_action(self):
+
+            if self.info.get('illegal',False):
+                action = (self.previous_action+1) % 7
+            else:
+                action = np.random.choice(range(7))
+            self.previous_action = action
+
+            return action
+        
+        def result(self,
+            new_obs, reward, done, info) -> None:
+            self.info = info
+            return
+    return createRdmAgent()
+
 def attach_eval_agent(agent_config):
     if agent_config['mode']=='human':
         return HumanAgent()
     elif agent_config['mode']=='load_agent':
-        class loadedAgent():
-            def __init__(self) -> None:
-                agent = agent_config['agent_type']
-                kwargs = agent_config.get('agent_kwargs', {})
-                env = agent_config['env']
-                pretrained = agent_config['policy_path']
-                self.agent = agent(env=env, **kwargs)  
-                self.agent.load(pretrained)
-                self.info = {}
-
-            def render(self, board):
-                self.last_obs = board
-
-            def call_action(self):
-    
-                if self.info.get('illegal',False):
-                    action = self.previous_action +1
-                else:
-                    action = self.agent.predict(self.last_obs, deterministic=True)[0]
-                self.previous_action = action
-
-                return action
-            
-            def result(self,
-                new_obs, reward, done, info) -> None:
-                self.info = info
-                return
-        return loadedAgent()
+        return pretainedAgent(agent_config)
+    elif agent_config['mode']=='rdm_agent':
+        return rdmAgent()

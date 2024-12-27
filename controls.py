@@ -13,35 +13,43 @@ config = {
         'observation':{'height': 6, 'width':7},
     },
     'state': lambda obs: obs['board'],
-    'reward': lambda obs: -1 if obs['illegal'] else 10 if obs['win'] else -10 if obs['loose'] else 0,
-    'end_condition': lambda obs: True if obs['full'] or obs['win'] or obs['loose'] else False,  #
+    'reward': lambda obs: -0.1 if obs['illegal'] else 
+            10 if (obs['win'] and obs['row']) else 
+            5 if (obs['win'] and obs['col']) else 
+            20 if (obs['win'] and obs['diag']) else 
+            -10 if (obs['loose'] and obs['row']) else 
+            -20 if (obs['loose'] and obs['col']) else 
+            -5 if (obs['loose'] and obs['diag']) else 0,
+    'end_condition': lambda obs: True if obs['full'] or obs['win'] or obs['loose'] or (obs['illegal_tot']>30) else False,  #
     'action': lambda act: {'column': act},   
-    'monitor_param': ['win', 'diag', 'col', 'row', 'loose', 'full', 'illegal'],
+    'monitor_param': ['win', 'diag', 'col', 'row', 'loose', 'full', 'illegal_tot'],
     'agent_eval': {
         'use_while_training':True,
         'output': r"run\\eval\\",
         # 'mode': 'human',
-        'mode': 'load_agent',
-        'agent_type': DQN,
-        'policy_path':r"run\\model\\oldest.zip",
-        'agent_kwargs':{'policy': 'MlpPolicy',},
+        'mode': 'rdm_agent',
+        # 'mode': 'load_agent',
+        # 'agent_type': DQN,
+        # 'policy_path':r"run\\model\\okish.zip",
+        # 'agent_kwargs':{'policy': 'MlpPolicy',},
         'eval_kwargs':{
             'n_eval_episodes': 1, 
-            'eval_freq': 100,
+            'eval_freq': 1000,
             },
         },
     'agent': {
         'output': r"run\\agent_1\\",
         'agent_type':DQN,
         'load_pretrained_model': False,
+        'pretrained_model_path':r"run\\model\\okish.zip",
         'model_path':r"run\\model\\",
-        'save_freq': 1000,
+        'save_freq': 10_000,
         'evaluate_policy':False,
-        'policy_path':r"run\\model\\rl_model_1000000_steps.zip",
+        'policy_path':r"run\\model\\rl_model_100000_steps.zip",
         'load_replay_buffer': False,
         'buffer_path':'.buf',
         'pretrain':False,
-        'total_timestep':100_000, #_000_000,
+        'total_timestep':10_000_000,
         'kwargs':{
             'policy': 'MlpPolicy',
             'train_freq':1,

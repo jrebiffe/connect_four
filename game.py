@@ -37,7 +37,7 @@ class Game:
 
         height = count_nonzero(self.board[column, :])
         if height == self.board[column, :].size:
-            return MoveStatus(illegal=True, full=False, win=False)
+            return MoveStatus(illegal=True, full=False, win=False, diag=False, col=False, row=False)
         self.board[column, height] = player_id
 
         win = self.is_win(column, height)
@@ -58,6 +58,7 @@ class Game:
             sublines = sliding_window_view(diag2, 4)
             fours = (sublines == value).all(axis=1)
             return fours.any()
+        return False
 
     def won_col(self, value, column, height) -> bool:
         """Verify is the given coin has scored in col."""
@@ -66,6 +67,7 @@ class Game:
             lower = height - 3
             col = self.board[column, lower:height]
             return (col == value).all()
+        return False
 
     def won_row(self, value, column, height) -> bool:
         """Verify is the given coin has scored in row."""
