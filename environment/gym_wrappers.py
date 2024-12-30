@@ -1,8 +1,6 @@
 import traceback
 from typing import Tuple, Any, Callable, SupportsFloat
 import gymnasium as gym
-from itertools import cycle
-from copy import deepcopy
 from stable_baselines3.common.monitor import Monitor
 
 
@@ -120,8 +118,6 @@ class SwitchWrapper(gym.Wrapper):
 
         if done:
             self.inner_agent.render(transition[0])
-            # self.inner_agent.last_obs = transition[0]
-            # actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
             action = self.inner_agent.call_action()
             observation, reward, done, truncated, info = self.env.step(None)
             self.inner_agent.result(observation, reward, done, info)
@@ -129,8 +125,6 @@ class SwitchWrapper(gym.Wrapper):
 
         while self.env.get_wrapper_attr('player_id')!=1:
             self.inner_agent.render(transition[0])
-            # self.inner_agent.last_obs = transition[0]
-            # actions, buffer_actions = self.inner_agent._sample_action(self.inner_agent.learning_starts)
             action = self.inner_agent.call_action()
             observation, reward, done, truncated, info = self.env.step(action)
             self.inner_agent.result(observation, reward, done, info)

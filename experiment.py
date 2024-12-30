@@ -2,14 +2,15 @@ from controls import config
 
 import gymnasium as gym
 from environment.gym_adapter import ConnectFourAdapter
-from environment.gym_wrappers import RewardWrapper, ObservationWrapper, ActionWrapper, PlayerIDWrapper, SwitchWrapper, customMonitorWrapper
+from environment.gym_wrappers import RewardWrapper, ObservationWrapper, ActionWrapper, PlayerIDWrapper, SwitchWrapper, customMonitorWrapper #, TransposeWrapper
+from agent.utils import inner_agent_follow, attach_eval_agent
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
-from agent.utils import agent_follow, attach_eval_agent
 from stable_baselines3.common.evaluation import evaluate_policy
-from gymnasium import spaces
+from gymnasium.wrappers import TransformObservation
 import numpy as np
 
 init_config = config['game']
+agent_config = config['agent']
 
 env = gym.make(init_config['name'], config=init_config)
 
@@ -22,47 +23,64 @@ reward_fct = config['reward']
 termination_fct = config['end_condition']
 env = RewardWrapper(env, reward_fct, termination_fct)
 
-# custom observation
+# custom observation to state transformation
 state_fct = config['state']
-observation_space = spaces.Box(
+observation_space = gym.spaces.Box(
     low=0, 
     high=2,
-    shape=( 
+    shape=(
         init_config['observation']['width'],
-        init_config['observation']['height']), 
+        init_config['observation']['height'],
+        ), 
     dtype=np.uint8
     )
 env = ObservationWrapper(env, state_fct, observation_space)
 
+# additional transformation for image like state
+state_transformer = config['state_transformer']
+state_space = gym.spaces.Box(low=0, high=255, 
+        shape=(*observation_space.shape,2),
+        dtype=np.uint8
+        )
+
 # custom action
-action_space = spaces.Discrete(init_config['observation']['width'])
+action_space = gym.spaces.Discrete(init_config['observation']['width'])
 action_fct = config['action']
 env = ActionWrapper(env, action_fct, action_space)
 
 # eval
 eval_config = config['agent_eval']
 eval_kwargs = eval_config['eval_kwargs']
-# agent_eval = eval_config['type']
 file_name = eval_config['output']
 eval_config['env'] = env
 
-# agent_config = config['agent']
-# agent = agent_config['agent_type']
-# kwargs = agent_config['kwargs']
-# agent = agent(env=env, **kwargs)
-# pretrained = agent_config.get('model_path')
-# agent.load(pretrained)
-agent_eval = attach_eval_agent(eval_config)
-eval_env = SwitchWrapper(env, agent_eval)
+# custom environment for eval inner agent
+if eval_config['kwargs'].get('policy') == "CnnPolicy": 
+    eval_env = TransformObservation(env, state_transformer, state_space)
+else:
+    eval_env = env
+
+eval_agent = attach_eval_agent(eval_env, eval_config)
+# eval_env = deepcopy(env)
+eval_env = SwitchWrapper(eval_env, eval_agent)
 eval_env = customMonitorWrapper(eval_env, file_name, info_keywords=tuple(config['monitor_param']))
 
-
 # agent switch
-agent_config = config['agent']
-# agent_type = agent_config['agent_type']
-eval_agent = agent_follow(agent_config)
-eval_kwargs = agent_config['kwargs']
-env = SwitchWrapper(env, eval_agent(env=env, **eval_kwargs))
+
+# custom environment for training inner agent
+# TODO dissociate inner and outer agent
+if agent_config['kwargs'].get('policy') == "CnnPolicy": 
+    inner_env = TransformObservation(env, state_transformer, state_space)
+else:
+    inner_env = env
+
+inner_agent = inner_agent_follow(inner_env, agent_config)
+env = SwitchWrapper(env, inner_agent)
+
+# one hot encoding for cnn policy
+if agent_config['kwargs'].get('policy') == "CnnPolicy":
+    env = TransformObservation(env, state_transformer, state_space)
+    eval_env = TransformObservation(eval_env, state_transformer, state_space)
 
 # Monitor
 file_name = agent_config['output']
@@ -78,7 +96,6 @@ class TestWrapper(gym.Wrapper):
 env = TestWrapper(env) 
 
 # AGENT
-agent_config = config['agent']
 agent = agent_config['agent_type']
 kwargs = agent_config['kwargs']
 

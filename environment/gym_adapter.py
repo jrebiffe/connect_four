@@ -19,8 +19,6 @@ class ConnectFourAdapter(gym.Env):
         truncated = False
         reward = 0
 
-        print(action)
-
         if action['column'] is None:
             obs = self.last_obs
             if obs['win']:
