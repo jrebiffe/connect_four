@@ -50,12 +50,12 @@ env = ActionWrapper(env, action_fct, action_space)
 
 # eval
 eval_config = config['agent_eval']
-eval_kwargs = eval_config['eval_kwargs']
+# eval_kwargs = eval_config['eval_kwargs']
 file_name = eval_config['output']
 eval_config['env'] = env
 
 # custom environment for eval inner agent
-if eval_config['kwargs'].get('policy') == "CnnPolicy": 
+if eval_config.get('kwargs',{}).get('policy','') == "CnnPolicy": 
     eval_env = TransformObservation(env, state_transformer, state_space)
 else:
     eval_env = env
@@ -69,7 +69,7 @@ eval_env = customMonitorWrapper(eval_env, file_name, info_keywords=tuple(config[
 
 # custom environment for training inner agent
 # TODO dissociate inner and outer agent
-if agent_config['kwargs'].get('policy') == "CnnPolicy": 
+if agent_config['kwargs'].get('policy','') == "CnnPolicy": 
     inner_env = TransformObservation(env, state_transformer, state_space)
 else:
     inner_env = env
@@ -78,7 +78,7 @@ inner_agent = inner_agent_follow(inner_env, agent_config)
 env = SwitchWrapper(env, inner_agent)
 
 # one hot encoding for cnn policy
-if agent_config['kwargs'].get('policy') == "CnnPolicy":
+if agent_config['kwargs'].get('policy','') == "CnnPolicy":
     env = TransformObservation(env, state_transformer, state_space)
     eval_env = TransformObservation(eval_env, state_transformer, state_space)
 

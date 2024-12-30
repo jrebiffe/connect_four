@@ -29,11 +29,11 @@ config = {
         'use_while_training':True,
         'output': r"run\\eval\\",
         # 'mode': 'human',
-        # 'mode': 'rdm_agent',
-        'mode': 'load_agent',
-        'agent_type': DQN,
-        'policy_path':r"run\\model\\oldest.zip", # previous agent
-        'kwargs':{'policy': 'MlpPolicy'},
+        'mode': 'rdm_agent',
+        # 'mode': 'load_agent',
+        # 'agent_type': DQN,
+        # 'policy_path':r"run\\model\\oldest.zip", # previous agent
+        # 'kwargs':{'policy': 'MlpPolicy'},
         'eval_kwargs':{
             'n_eval_episodes': 1, 
             'eval_freq': 1000,
@@ -46,8 +46,8 @@ config = {
         'pretrained_model_path':r"run\\model\\okish.zip",
         'model_path':r"run\\model\\",
         'save_freq': 25_000,
-        'evaluate_policy':False,
-        'policy_path':r"run\\model\\rl_model_100000_steps.zip",
+        'evaluate_policy': False,
+        'policy_path':r"run\\model\\oldest.zip",
         'load_replay_buffer': False,
         'buffer_path':'.buf',
         'pretrain':False,
