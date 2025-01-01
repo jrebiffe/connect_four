@@ -1,4 +1,5 @@
 import traceback
+import numpy as np
 from typing import Tuple, Any, Callable, SupportsFloat
 import gymnasium as gym
 from stable_baselines3.common.monitor import Monitor
@@ -110,6 +111,12 @@ class SwitchWrapper(gym.Wrapper):
     def __init__(self, env, agent):
         super(SwitchWrapper, self).__init__(env)
         self.inner_agent = agent
+        extracted_env = self.inner_agent.env
+        try:
+            transform = extracted_env.envs[0].get_wrapper_attr('func')
+            self.transform = lambda obs: np.transpose(transform(np.transpose(obs)))
+        except AttributeError:
+            self.transform = lambda obs: obs
 
     def step(self, action):
         transition = list(self.env.step(action))
@@ -117,17 +124,17 @@ class SwitchWrapper(gym.Wrapper):
         done = transition[2]
 
         if done:
-            self.inner_agent.render(transition[0])
+            self.inner_agent.observe(self.transform(transition[0]))
             action = self.inner_agent.call_action()
             observation, reward, done, truncated, info = self.env.step(None)
-            self.inner_agent.result(observation, reward, done, info)
+            self.inner_agent.result(self.transform(observation), reward, done, info)
             return transition
 
         while self.env.get_wrapper_attr('player_id')!=1:
-            self.inner_agent.render(transition[0])
+            self.inner_agent.observe(self.transform(transition[0]))
             action = self.inner_agent.call_action()
             observation, reward, done, truncated, info = self.env.step(action)
-            self.inner_agent.result(observation, reward, done, info)
+            self.inner_agent.result(self.transform(observation), reward, done, info)
             transition[0] = observation
 
         if done:
@@ -146,10 +153,10 @@ class SwitchWrapper(gym.Wrapper):
         self.init_info = info
 
         if self.env.get_wrapper_attr('player_id')!=1:
-            self.inner_agent.render(observation)
+            self.inner_agent.observe(self.transform(observation))
             action = self.inner_agent.call_action()
             observation, reward, done, truncated, info = self.env.step(action)
-            self.inner_agent.result(observation, reward, done, info)
+            self.inner_agent.result(self.transform(observation), reward, done, info)
 
         return observation, info
 

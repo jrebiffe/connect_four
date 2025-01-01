@@ -3,7 +3,7 @@ from controls import config
 import gymnasium as gym
 from environment.gym_adapter import ConnectFourAdapter
 from environment.gym_wrappers import RewardWrapper, ObservationWrapper, ActionWrapper, PlayerIDWrapper, SwitchWrapper, customMonitorWrapper #, TransposeWrapper
-from agent.utils import inner_agent_follow, attach_eval_agent
+from agent.utils import create_inner_agent, create_eval_agent
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 from gymnasium.wrappers import TransformObservation
@@ -60,8 +60,7 @@ if eval_config.get('kwargs',{}).get('policy','') == "CnnPolicy":
 else:
     eval_env = env
 
-eval_agent = attach_eval_agent(eval_env, eval_config)
-# eval_env = deepcopy(env)
+eval_agent = create_eval_agent(eval_env, eval_config)
 eval_env = SwitchWrapper(eval_env, eval_agent)
 eval_env = customMonitorWrapper(eval_env, file_name, info_keywords=tuple(config['monitor_param']))
 
@@ -73,8 +72,7 @@ if agent_config['kwargs'].get('policy','') == "CnnPolicy":
     inner_env = TransformObservation(env, state_transformer, state_space)
 else:
     inner_env = env
-
-inner_agent = inner_agent_follow(inner_env, agent_config)
+inner_agent = create_inner_agent(inner_env, agent_config)
 env = SwitchWrapper(env, inner_agent)
 
 # one hot encoding for cnn policy
@@ -103,18 +101,18 @@ agent = agent(env=env, **kwargs)
 
 if agent_config.get('load_pretrained_model', False):
     pretrained = agent_config.get('pretrained_model_path')
-    agent.load(pretrained, env=env)
+    agent = agent.load(pretrained, env=env)
     if config['agent'].get('evaluate', False):  
         agent.set_training_mode(False)
 
 if agent_config.get('evaluate_policy', False):  
     pretrained = agent_config.get('policy_path')
-    agent.load(pretrained)
+    agent = agent.load(pretrained)
     evaluate_policy(agent, env=eval_env)
 
 if agent_config.get('load_replay_buffer', False):  
     pretrained = agent_config.get('buffer_path')
-    agent.load_replay_buffer(pretrained)
+    agent = agent.load_replay_buffer(pretrained)
     if agent_config.get('pretrain', False):
         agent.train()
 

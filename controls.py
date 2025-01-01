@@ -3,7 +3,7 @@ from agent.policies import CustomCNN
 from torch.nn import Tanh
 import numpy as np
 
-seed = 43
+seed = 42
 
 config = {
     'game' : {
@@ -28,8 +28,8 @@ config = {
     'agent_eval': {
         'use_while_training':True,
         'output': r"run\\eval\\",
-        # 'mode': 'human',
-        'mode': 'rdm_agent',
+        'mode': 'human',
+        # 'mode': 'rdm_agent',
         # 'mode': 'load_agent',
         # 'agent_type': DQN,
         # 'policy_path':r"run\\model\\oldest.zip", # previous agent
@@ -47,7 +47,7 @@ config = {
         'model_path':r"run\\model\\",
         'save_freq': 25_000,
         'evaluate_policy': False,
-        'policy_path':r"run\\model\\oldest.zip",
+        'policy_path':r"run\\model\\rl_model_1800000_steps.zip",
         'load_replay_buffer': False,
         'buffer_path':'.buf',
         'pretrain':False,

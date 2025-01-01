@@ -4,6 +4,8 @@ from numpy import rot90
 
 class HumanAgent:
     """Connect Four human player interface."""
+    def __init__(self, env, agent_config) -> None:
+        self.env = env
 
     def call_action(self) -> int:
         """Ask human the column in which to insert coin."""
@@ -20,7 +22,7 @@ class HumanAgent:
 
         return value
 
-    def render(self, board) -> None:
+    def observe(self, board) -> None:
         """Display board to the human."""
         board = rot90(board)
         print(" ", end="")
@@ -42,7 +44,7 @@ class HumanAgent:
 
     def result(self, new_obs, reward, done, info) -> None:
         """Display RL agent's `step()` output to the human."""
-        self.render(new_obs)
+        self.observe(new_obs)
         if info['win']:
             print('You won!')
         if info['loose']:
