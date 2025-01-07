@@ -2,7 +2,7 @@
 
 from typing import TypedDict
 
-from numpy import count_nonzero, diagonal, int_, ndarray, zeros
+from numpy import count_nonzero, diagonal, int_, ndarray, zeros, fliplr
 from numpy.lib.stride_tricks import sliding_window_view
 
 
@@ -10,7 +10,7 @@ class MoveStatus(TypedDict):
     """Report the game status after `Game.step()`."""
     illegal: bool
     full: bool
-    win: bool
+    previous_player_won: bool
     diag: bool
     col: bool
     row: bool
@@ -37,7 +37,7 @@ class Game:
 
         height = count_nonzero(self.board[column, :])
         if height == self.board[column, :].size:
-            return MoveStatus(illegal=True, full=False, win=False, diag=False, col=False, row=False)
+            return MoveStatus(illegal=True, full=False, previous_player_won=False, diag=False, col=False, row=False)
         self.board[column, height] = player_id
 
         win = self.is_win(column, height)
@@ -51,13 +51,15 @@ class Game:
         if diag1.size >= 4:
             sublines = sliding_window_view(diag1, 4)
             fours = (sublines == value).all(axis=1)
-            return fours.any()
+            if fours.any():
+                return True
 
         diag2 = diagonal(self.board, offset=column - height, axis1=1, axis2=0)
         if diag2.size >= 4:
             sublines = sliding_window_view(diag2, 4)
             fours = (sublines == value).all(axis=1)
-            return fours.any()
+            if fours.any():
+                return True
         return False
 
     def won_col(self, value, column, height) -> bool:
@@ -89,4 +91,4 @@ class Game:
 
         win = any([diag, col, row])    
         
-        return {'win': win, 'diag':diag, 'col':col, 'row':row} 
+        return {'previous_player_won': win, 'diag':diag, 'col':col, 'row':row} 

@@ -18,7 +18,7 @@ class CustomCNN(BaseFeaturesExtractor):
         self.cnn = nn.Sequential(
             nn.Conv2d(n_input_channels, 32, kernel_size=5, padding=2),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.Conv2d(32, 32, kernel_size=5, padding=2),
             nn.ReLU(),
             nn.Flatten(),
         )

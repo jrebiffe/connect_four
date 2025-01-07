@@ -1,8 +1,10 @@
+from hashlib import new
 from controls import config
 
 import gymnasium as gym
+from copy import deepcopy
 from environment.gym_adapter import ConnectFourAdapter
-from environment.gym_wrappers import RewardWrapper, ObservationWrapper, ActionWrapper, PlayerIDWrapper, SwitchWrapper, customMonitorWrapper #, TransposeWrapper
+from environment.gym_wrappers import RewardWrapper, ObservationWrapper, ActionWrapper, PlayerIDWrapper, SwitchWrapper, customMonitorWrapper, innerMonitorWrapper
 from agent.utils import create_inner_agent, create_eval_agent
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -11,6 +13,11 @@ import numpy as np
 
 init_config = config['game']
 agent_config = config['agent']
+eval_config = config['agent_eval']
+inner_agent_config = deepcopy(config['agent'])
+inner_agent_config['output'] = "run\\training_agent_2\\"
+inner_eval_config = deepcopy(config['agent_eval'])
+inner_eval_config['output'] = "run\\eval_agent_2\\"
 
 env = gym.make(init_config['name'], config=init_config)
 
@@ -38,8 +45,12 @@ env = ObservationWrapper(env, state_fct, observation_space)
 
 # additional transformation for image like state
 state_transformer = config['state_transformer']
+dummy = np.array([])
+nb_channel = list(set(dummy.shape) ^ set(state_transformer(dummy).shape))
+if len(nb_channel)==0:
+    nb_channel = [1]
 state_space = gym.spaces.Box(low=0, high=255, 
-        shape=(*observation_space.shape,2),
+        shape=(*nb_channel, *observation_space.shape),
         dtype=np.uint8
         )
 
@@ -49,8 +60,6 @@ action_fct = config['action']
 env = ActionWrapper(env, action_fct, action_space)
 
 # eval
-eval_config = config['agent_eval']
-# eval_kwargs = eval_config['eval_kwargs']
 file_name = eval_config['output']
 eval_config['env'] = env
 
@@ -62,23 +71,45 @@ else:
 
 eval_agent = create_eval_agent(eval_env, eval_config)
 eval_env = SwitchWrapper(eval_env, eval_agent)
+inner_eval_env = customMonitorWrapper(eval_env, inner_eval_config['output'], info_keywords=tuple(config['monitor_param']))
 eval_env = customMonitorWrapper(eval_env, file_name, info_keywords=tuple(config['monitor_param']))
 
-# agent switch
+# OBS TRANSFORMATION for cnn policy
+if agent_config['kwargs'].get('policy','') == "CnnPolicy":
+    eval_env = TransformObservation(eval_env, state_transformer, state_space)
+if inner_agent_config['kwargs'].get('policy','') == "CnnPolicy":
+    inner_eval_env = TransformObservation(inner_eval_env, state_transformer, state_space)
 
+env = innerMonitorWrapper(env, inner_agent_config['output'], info_keywords=tuple(config['monitor_param']))
+
+# AGENT SWITCH for training
 # custom environment for training inner agent
-# TODO dissociate inner and outer agent
-if agent_config['kwargs'].get('policy','') == "CnnPolicy": 
+if inner_agent_config['kwargs'].get('policy','') == "CnnPolicy": 
     inner_env = TransformObservation(env, state_transformer, state_space)
 else:
     inner_env = env
-inner_agent = create_inner_agent(inner_env, agent_config)
+
+if eval_config.get('use_while_training', False):
+    eval_callback = EvalCallback(inner_eval_env, **eval_config['eval_kwargs'])
+    inner_agent_config['callback'] = [eval_callback]
+
+inner_agent = create_inner_agent(inner_env, inner_agent_config)
 env = SwitchWrapper(env, inner_agent)
 
-# one hot encoding for cnn policy
+# OBS TRANSFORMATION for cnn policy
 if agent_config['kwargs'].get('policy','') == "CnnPolicy":
     env = TransformObservation(env, state_transformer, state_space)
-    eval_env = TransformObservation(eval_env, state_transformer, state_space)
+
+# CALLBACKS
+save_path = agent_config['model_path']
+save_freq = agent_config['save_freq']
+# Save a checkpoint
+checkpoint_callback = CheckpointCallback(save_freq=save_freq, save_path=save_path)
+# Evaluate
+callbacks = [checkpoint_callback]
+if eval_config.get('use_while_training', False):
+    eval_callback = EvalCallback(eval_env, **eval_config['eval_kwargs'])
+    callbacks.append(eval_callback)
 
 # Monitor
 file_name = agent_config['output']
@@ -99,39 +130,29 @@ kwargs = agent_config['kwargs']
 
 agent = agent(env=env, **kwargs)
 
-if agent_config.get('load_pretrained_model', False):
-    pretrained = agent_config.get('pretrained_model_path')
-    agent = agent.load(pretrained, env=env)
-    if config['agent'].get('evaluate', False):  
-        agent.set_training_mode(False)
-
 if agent_config.get('evaluate_policy', False):  
     pretrained = agent_config.get('policy_path')
     agent = agent.load(pretrained)
     evaluate_policy(agent, env=eval_env)
 
-if agent_config.get('load_replay_buffer', False):  
-    pretrained = agent_config.get('buffer_path')
-    agent = agent.load_replay_buffer(pretrained)
-    if agent_config.get('pretrain', False):
-        agent.train()
+else:
+    if agent_config.get('load_pretrained_model', False):
+        pretrained = agent_config.get('pretrained_model_path')
+        agent = agent.load(pretrained, env=env)
+        if config['agent'].get('evaluate', False):  
+            agent.set_training_mode(False)
 
-#TRAINING
-total_timestep = agent_config['total_timestep']
+    if agent_config.get('load_replay_buffer', False):  
+        pretrained = agent_config.get('buffer_path')
+        agent = agent.load_replay_buffer(pretrained)
+        if agent_config.get('pretrain', False):
+            agent.train()
 
-save_path = agent_config['model_path']
-save_freq = agent_config['save_freq']
-# Save a checkpoint
-checkpoint_callback = CheckpointCallback(save_freq=save_freq, save_path=save_path)
+    #TRAINING
+    total_timestep = agent_config['total_timesteps']
 
-callbacks = [checkpoint_callback]
-if eval_config.get('use_while_training', False):
-
-    eval_callback =EvalCallback(eval_env, **eval_config['eval_kwargs'])
-    callbacks.append(eval_callback)
-
-agent.learn(total_timesteps=total_timestep, callback=callbacks)
-env.close()
+    agent.learn(total_timesteps=total_timestep, callback=callbacks)
+    env.close()
 
 # action = [1,2,3]
 

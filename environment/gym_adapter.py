@@ -19,40 +19,48 @@ class ConnectFourAdapter(gym.Env):
         truncated = False
         reward = 0
 
-        if action['column'] is None:
+        if self.last_obs['previous_player_won']:
             obs = self.last_obs
-            if obs['win']:
-                obs['win'] = False
-                obs['loose'] = True
+            obs['previous_player_won'] = False
+            obs['previous_player_lost'] = True
             info = deepcopy(obs)
-            # self.game_over = False
             return obs, reward, terminated, truncated, info
+
+        if self.last_obs['previous_player_aborted']:
+            obs = self.last_obs
+            obs['previous_player_aborted'] = False
+            obs['aborted_the_game'] = True
+            info = deepcopy(obs)
+            return obs, reward, terminated, True, info
+
+        if self.last_obs['full']:
+            obs = self.last_obs
+            info = deepcopy(obs)
+            return obs, reward, terminated, truncated, info
+            
 
         obs = self.game.step(action)
         info = deepcopy(obs)
         info.update({'board': self.game.observe()})
-        info.update({'loose': False})
+        info.update({'previous_player_lost': False})
+        info.update({'previous_player_aborted': info['illegal']})
+        info.update({'aborted_the_game': False})
 
-        if not info['illegal']:
-            self.illegal_count = 0
         self.illegal_count += int(info['illegal'])
         info.update({'illegal_tot': self.illegal_count})
 
         self.last_obs = deepcopy(info)
-        # self.game_over = obs['win'] or obs['full']
+
         return obs, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
 
-        # if self.game_over:
-        #     return None, self.init_obs #TODO renvoyer les board avec le premier jeton du prochain joueur si c'est lui qui commence
-
-        observation = None #{'board': self.game.observe()}
+        observation = None
         self.game = Game(self.height, self.width)
-        info = {'board': self.game.observe()}
+        info = {'board': self.game.observe(), 'previous_player_won': False, 'full':False, 'previous_player_aborted':False}
         self.game_over = False
         self.illegal_count = 0
-        self.init_obs = deepcopy(info)
+        self.last_obs = deepcopy(info)
         return observation, info
 
     def render(self):

@@ -42,11 +42,11 @@ class HumanAgent:
                     print("\033[93mO\033[0m", end="")
             print("|")
 
-    def result(self, new_obs, reward, done, info) -> None:
+    def result(self, new_obs, reward, done, truncated, info) -> None:
         """Display RL agent's `step()` output to the human."""
         self.observe(new_obs)
-        if info['win']:
+        if info['previous_player_lost']:
             print('You won!')
-        if info['loose']:
+        if info['previous_player_won']:
             print('Looooooser')
         # print(reward, done, info)
