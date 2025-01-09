@@ -47,14 +47,16 @@ class Game:
     def won_diag(self, value, column, height) -> bool:
         """Verify is the given coin has scored in diag."""
         value = self.board[column, height]
-        diag1 = diagonal(self.board, offset=column - height)
+
+        diag1 = diagonal(self.board, offset=height - column)
+        print(diag1)
         if diag1.size >= 4:
             sublines = sliding_window_view(diag1, 4)
             fours = (sublines == value).all(axis=1)
             if fours.any():
                 return True
 
-        diag2 = diagonal(self.board, offset=column - height, axis1=1, axis2=0)
+        diag2 = diagonal(fliplr(self.board),offset=(self.board.shape[1] - 1 - column) - height) 
         if diag2.size >= 4:
             sublines = sliding_window_view(diag2, 4)
             fours = (sublines == value).all(axis=1)
